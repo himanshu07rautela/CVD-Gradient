@@ -6,3 +6,4 @@ fastapi
 uvicorn 
 motor
 python-dotenv
+scikit-learn==1.5.1
