@@ -32,10 +32,10 @@ _Coming soon!_
 
 ## 📦 How to Run Locally
 1. **Clone the repo:**
-   ```bash
+```bash
    git clone https://github.com/himanshu07rautela/CVD-Gradient.git
    cd CVD-Gradient
-   ```
+```
 2. **Backend:**
    - Install Python dependencies: `pip install -r requirements.txt`
    - Start server: `uvicorn api:app --reload --host 0.0.0.0 --port 8000`
