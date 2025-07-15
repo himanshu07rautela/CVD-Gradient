@@ -28,7 +28,7 @@ const PatientDashboard = () => {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    axios.get(`http://localhost:8000/predictions?user_id=${user.id}`)
+    axios.get(`https://cvd-gradient.onrender.com/predictions?user_id=${user.id}`)
       .then(res => {
         // Map MongoDB data to dashboard format and sort by timestamp (oldest first)
         const history = res.data

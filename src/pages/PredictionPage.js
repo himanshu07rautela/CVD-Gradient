@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 
 const PredictionPage = () => {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ const PredictionPage = () => {
       // Make API call to backend
       const userInfo = user ? JSON.stringify({ id: user.id, name: user.name }) : null;
       const response = await axios.post(
-        'http://localhost:8000/predict',
+        'https://cvd-gradient.onrender.com/predict',
         processedData,
         userInfo ? { headers: { 'x-user-info': userInfo } } : undefined
       );
@@ -374,7 +375,7 @@ const PredictionPage = () => {
             {result && (
               <Card sx={{ bgcolor: 'grey.50', textAlign: 'center', boxShadow: 3, borderRadius: 3 }}>
                 <CardContent>
-                  <img src="/heart-illustration.png" alt="Heart" style={{ width: 80, marginBottom: 16 }} />
+                  <FavoriteIcon sx={{ fontSize: 80, color: getRiskColor(result.riskLevel), mb: 2 }} />
                   <Typography variant="h4" gutterBottom color={getRiskColor(result.riskLevel)}>
                     {result.riskScore}%
                   </Typography>

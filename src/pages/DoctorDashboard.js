@@ -30,7 +30,7 @@ const DoctorDashboard = () => {
 
   useEffect(() => {
     setLoading(true);
-    axios.get('http://localhost:8000/patients/summary')
+    axios.get('https://cvd-gradient.onrender.com/patients/summary')
       .then(res => {
         setPatientData(res.data.patients || []);
         setStats(res.data.stats || {});
