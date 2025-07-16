@@ -61,7 +61,7 @@ CVD Gradient uses a robust ML pipeline for accurate cardiovascular disease predi
   - Model exported with Joblib and loaded by FastAPI for inference
 
 ## 🌐 Live Demo
-_Coming soon!_
+[Access the platform here](https://cvd-gradient.vercel.app/patient-dashboard)
 
 ## 🛠️ Tech Stack
 - **Frontend:** React 18, Material-UI, Recharts, Axios
@@ -86,7 +86,7 @@ _Coming soon!_
 MIT License
 
 ## 🤝 Dataset Credits
-UCI Heart Disease Dataset
+UCI Heart Disease Dataset ([Kaggle link](https://www.kaggle.com/datasets/redwankarimsony/heart-disease-data/data))
 
 **Creators:**
 - Hungarian Institute of Cardiology, Budapest: Andras Janosi, M.D.
