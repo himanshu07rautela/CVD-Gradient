@@ -84,7 +84,7 @@ jspm_packages/
 
 # Dataset files
 
-*.json
+
 *.xlsx
 
 # Temporary files
