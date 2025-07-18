@@ -33,7 +33,7 @@ const DoctorDashboard = () => {
       setLoading(false);
       return;
     }
-    const url = `https://cvd-gradient.onrender.com/patients/summary?doctor_id=${doctorId}`;
+    const url = `http://localhost:8000/patients/summary?doctor_id=${doctorId}`;
     axios.get(url)
       .then(res => {
         setPatientData(res.data.patients || []);

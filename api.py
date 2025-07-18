@@ -120,19 +120,11 @@ async def signup(user: UserSignup):
     result = await db['users'].insert_one(user_doc)
     user_id = result.inserted_id
     if user.role == 'patient':
-        # Optionally link doctor at signup if doctorId provided
-        linked_doctors = []
-        if hasattr(user, 'doctorId') and user.doctorId:
-            doctor = await db['users'].find_one({"doctorId": user.doctorId, "role": "doctor"})
-            if doctor:
-                linked_doctors.append(user.doctorId)
-                # Add patient to doctor's patients array
-                await db['doctors'].update_one({"doctorId": user.doctorId}, {"$addToSet": {"patients": user_id}})
         patient_doc = {
             "userId": user_id,
             "age": None,
             "gender": None,
-            "linkedDoctors": linked_doctors,
+            "doctorIds": [],  # Many-to-many: empty at first
             "tests": []
         }
         await db['patients'].insert_one(patient_doc)
@@ -141,7 +133,7 @@ async def signup(user: UserSignup):
             "userId": user_id,
             "doctorId": user_doc["doctorId"],
             "specialization": None,
-            "patients": []
+            "patientIds": []  # Many-to-many: empty at first
         }
         await db['doctors'].insert_one(doctor_doc)
     return {"message": "Signup successful", "userId": str(user_id), "role": user.role, "doctorId": user_doc.get("doctorId")}
@@ -155,7 +147,8 @@ async def login(user: UserLogin):
         "userId": str(user_doc['_id']),
         "name": user_doc.get('name', ''),
         "email": user_doc['email'],
-        "role": user_doc['role']
+        "role": user_doc['role'],
+        "doctorId": user_doc.get('doctorId')  # Add doctorId for doctors
     }
 
 class PredictRequest(BaseModel):
@@ -269,26 +262,19 @@ async def link_doctor(patient_email: str = Body(...), doctor_id: str = Body(...)
     doctor_doc = await db['users'].find_one({"doctorId": doctor_id, "role": "doctor"})
     if not user_doc or not doctor_doc:
         raise HTTPException(status_code=404, detail="Patient or doctor not found.")
-    # Update patient's linkedDoctors
+    # Update patient's doctorIds array
     patient = await db['patients'].find_one({"userId": user_doc['_id']})
-    await db['patients'].update_one({"userId": user_doc['_id']}, {"$addToSet": {"linkedDoctors": doctor_id}})
-    # Update doctor's patients array
-    await db['doctors'].update_one({"doctorId": doctor_id}, {"$addToSet": {"patients": user_doc['_id']}})
+    await db['patients'].update_one({"userId": user_doc['_id']}, {"$addToSet": {"doctorIds": doctor_id}})
+    # Update doctor's patientIds array
+    await db['doctors'].update_one({"doctorId": doctor_id}, {"$addToSet": {"patientIds": user_doc['_id']}})
     return {"message": "Doctor linked successfully."}
 
 @app.get('/patients/summary')
 async def get_patients_summary(doctor_id: Optional[str] = Query(None)):
     # Only show patients linked to this doctor if doctor_id is provided
     if doctor_id:
-        doctor = await db['doctors'].find_one({"doctorId": doctor_id})
-        if not doctor:
-            raise HTTPException(status_code=404, detail="Doctor not found.")
-        patient_ids = doctor.get('patients', [])
-        # Only fetch patients who are in the doctor's patients array AND have the doctorId in their linkedDoctors
-        patients_cursor = db['patients'].find({
-            "userId": {"$in": patient_ids},
-            "linkedDoctors": doctor_id
-        })
+        # Find all patients where doctorIds contains this doctor_id
+        patients_cursor = db['patients'].find({"doctorIds": doctor_id})
     else:
         patients_cursor = db['patients'].find({})
     patients = []
