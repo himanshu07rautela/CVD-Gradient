@@ -6,14 +6,22 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import { useNavigate } from 'react-router-dom';
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [patientData, setPatientData] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
   // Remove parameterOptions and selectedParam
+
+  useEffect(() => {
+    if (!user || user.role !== 'doctor') {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     setLoading(true);

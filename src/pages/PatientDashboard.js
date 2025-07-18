@@ -32,6 +32,12 @@ const PatientDashboard = () => {
   const [linkDoctorMsg, setLinkDoctorMsg] = useState('');
 
   useEffect(() => {
+    if (!user || user.role !== 'patient') {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
