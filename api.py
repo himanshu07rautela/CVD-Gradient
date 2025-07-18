@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 import joblib
 import numpy as np
 import pandas as pd
@@ -8,6 +8,10 @@ import motor.motor_asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+from typing import Optional
+from passlib.context import CryptContext
+import random
+import string
 
 # Load environment variables
 load_dotenv()
@@ -69,6 +73,91 @@ except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
     raise
 
+# User signup/login models
+class UserSignup(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    role: str  # 'patient' or 'doctor'
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+# Helper to generate unique doctorId
+async def generate_unique_doctor_id():
+    while True:
+        doctor_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        exists = await db['users'].find_one({"doctorId": doctor_id})
+        if not exists:
+            return doctor_id
+
+@app.post('/signup')
+async def signup(user: UserSignup):
+    existing = await db['users'].find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered.")
+    hashed_pw = hash_password(user.password)
+    user_doc = {
+        "name": user.name,
+        "email": user.email,
+        "hashed_password": hashed_pw,
+        "role": user.role,
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow()
+    }
+    if user.role == 'doctor':
+        doctor_id = await generate_unique_doctor_id()
+        user_doc["doctorId"] = doctor_id
+    result = await db['users'].insert_one(user_doc)
+    user_id = result.inserted_id
+    if user.role == 'patient':
+        # Optionally link doctor at signup if doctorId provided
+        linked_doctors = []
+        if hasattr(user, 'doctorId') and user.doctorId:
+            doctor = await db['users'].find_one({"doctorId": user.doctorId, "role": "doctor"})
+            if doctor:
+                linked_doctors.append(user.doctorId)
+                # Add patient to doctor's patients array
+                await db['doctors'].update_one({"doctorId": user.doctorId}, {"$addToSet": {"patients": user_id}})
+        patient_doc = {
+            "userId": user_id,
+            "age": None,
+            "gender": None,
+            "linkedDoctors": linked_doctors,
+            "tests": []
+        }
+        await db['patients'].insert_one(patient_doc)
+    elif user.role == 'doctor':
+        doctor_doc = {
+            "userId": user_id,
+            "doctorId": user_doc["doctorId"],
+            "specialization": None,
+            "patients": []
+        }
+        await db['doctors'].insert_one(doctor_doc)
+    return {"message": "Signup successful", "userId": str(user_id), "role": user.role, "doctorId": user_doc.get("doctorId")}
+
+@app.post('/login')
+async def login(user: UserLogin):
+    user_doc = await db['users'].find_one({"email": user.email})
+    if not user_doc or 'hashed_password' not in user_doc or not verify_password(user.password, user_doc['hashed_password']):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    return {
+        "userId": str(user_doc['_id']),
+        "name": user_doc.get('name', ''),
+        "email": user_doc['email'],
+        "role": user_doc['role']
+    }
+
 class PredictRequest(BaseModel):
     age: float
     sex: str
@@ -86,7 +175,6 @@ class PredictRequest(BaseModel):
 
 @app.post('/predict')
 async def predict(request: PredictRequest, req: Request):
-    # Convert request to DataFrame
     input_dict = request.dict()
     
     # Convert string boolean values to proper format
@@ -130,9 +218,13 @@ async def predict(request: PredictRequest, req: Request):
         if user_info:
             import json
             user = json.loads(user_info)
+            # Use email as unique user id if available
+            if user and 'email' in user:
+                user['id'] = user['email']
     except Exception:
         user = None
     
+    # Save prediction to predictions collection (for legacy)
     prediction_doc = {
         "user": user,
         "input": input_dict,
@@ -140,6 +232,19 @@ async def predict(request: PredictRequest, req: Request):
         "timestamp": datetime.utcnow()
     }
     await predictions_collection.insert_one(prediction_doc)
+    
+    # Also save to patient's tests array
+    if user and user.get('email'):
+        patient_user = await db['users'].find_one({"email": user['email'], "role": "patient"})
+        if patient_user:
+            test_entry = {
+                "testName": "CVD Risk Assessment",
+                "result": risk_score,
+                "date": datetime.utcnow(),
+                "prescribedBy": input_dict.get('prescribedBy')
+            }
+            test_entry.update(input_dict)  # Add all input parameters to the test entry
+            await db['patients'].update_one({"userId": patient_user['_id']}, {"$push": {"tests": test_entry}})
     
     return {"risk_score": risk_score}
 
@@ -149,7 +254,7 @@ from typing import Optional
 async def get_predictions(user_id: Optional[str] = Query(None)):
     query = {}
     if user_id:
-        query["user.id"] = user_id
+        query["user.id"] = user_id  # user_id should be email
     cursor = predictions_collection.find(query).sort("timestamp", -1)
     results = []
     async for doc in cursor:
@@ -157,44 +262,57 @@ async def get_predictions(user_id: Optional[str] = Query(None)):
         results.append(doc)
     return results
 
+@app.post('/link-doctor')
+async def link_doctor(patient_email: str = Body(...), doctor_id: str = Body(...)):
+    # Find patient and doctor
+    user_doc = await db['users'].find_one({"email": patient_email, "role": "patient"})
+    doctor_doc = await db['users'].find_one({"doctorId": doctor_id, "role": "doctor"})
+    if not user_doc or not doctor_doc:
+        raise HTTPException(status_code=404, detail="Patient or doctor not found.")
+    # Update patient's linkedDoctors
+    patient = await db['patients'].find_one({"userId": user_doc['_id']})
+    await db['patients'].update_one({"userId": user_doc['_id']}, {"$addToSet": {"linkedDoctors": doctor_id}})
+    # Update doctor's patients array
+    await db['doctors'].update_one({"doctorId": doctor_id}, {"$addToSet": {"patients": user_doc['_id']}})
+    return {"message": "Doctor linked successfully."}
+
 @app.get('/patients/summary')
-async def get_patients_summary():
-    # Aggregate stats for doctor dashboard
-    pipeline = [
-        {"$group": {
-            "_id": "$user.id",
-            "name": {"$first": "$user.name"},
-            "age": {"$first": "$input.age"},
-            "lastTest": {"$max": "$timestamp"},
-            "riskScore": {"$avg": "$risk_score"},
-            "count": {"$sum": 1},
-        }}
-    ]
+async def get_patients_summary(doctor_id: Optional[str] = Query(None)):
+    # Only show patients linked to this doctor if doctor_id is provided
+    if doctor_id:
+        doctor = await db['doctors'].find_one({"doctorId": doctor_id})
+        if not doctor:
+            raise HTTPException(status_code=404, detail="Doctor not found.")
+        patient_ids = doctor.get('patients', [])
+        patients_cursor = db['patients'].find({"userId": {"$in": patient_ids}})
+    else:
+        patients_cursor = db['patients'].find({})
     patients = []
-    async for doc in predictions_collection.aggregate(pipeline):
-        if doc["riskScore"] > 0.7:
-            status = "High Risk"
-        elif doc["riskScore"] > 0.4:
-            status = "Medium Risk"
-        else:
-            status = "Low Risk"
+    async for patient in patients_cursor:
+        user_doc = await db['users'].find_one({"_id": patient['userId']})
+        if not user_doc:
+            continue
+        tests = patient.get('tests', [])
+        last_test = max((t['date'] for t in tests), default=None)
+        avg_risk = round(np.mean([t['result'] for t in tests]) * 100, 1) if tests else 0
+        status = "High Risk" if avg_risk > 70 else "Medium Risk" if avg_risk > 40 else "Low Risk"
         patients.append({
-            "id": doc["_id"],
-            "name": doc.get("name", "Unknown"),
-            "age": doc.get("age", None),
-            "lastTest": doc.get("lastTest", None),
-            "riskScore": round(doc["riskScore"] * 100, 1),
+            "id": str(user_doc['_id']),
+            "name": user_doc.get('name', 'Unknown'),
+            "age": patient.get('age'),
+            "gender": patient.get('gender'),
+            "lastTest": last_test,
+            "riskScore": avg_risk,
             "status": status,
-            "count": doc["count"]
+            "count": len(tests),
+            "tests": tests  # Include full test details
         })
-    
     # Summary stats
     totalPatients = len(patients)
     highRisk = sum(1 for p in patients if p["status"] == "High Risk")
     mediumRisk = sum(1 for p in patients if p["status"] == "Medium Risk")
     lowRisk = sum(1 for p in patients if p["status"] == "Low Risk")
     avgRisk = round(np.mean([p["riskScore"] for p in patients]) if patients else 0, 1)
-    
     return {
         "patients": patients,
         "stats": {

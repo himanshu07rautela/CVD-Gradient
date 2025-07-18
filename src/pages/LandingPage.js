@@ -51,84 +51,41 @@ const LandingPage = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #d32f2f 0%, #e91e63 100%)',
-          color: 'white',
-          py: { xs: 4, sm: 6, md: 8 },
-          textAlign: 'center',
+          minHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundImage: 'url("/heart-bg.png")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           position: 'relative',
-          overflow: 'hidden',
+          zIndex: 1,
+          '&:before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(30,0,20,0.7)', // dark overlay for readability
+            zIndex: 2,
+          },
+          '> *': { position: 'relative', zIndex: 3 }
         }}
       >
-        {/* Overlay for better text contrast */}
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          bgcolor: 'rgba(0,0,0,0.32)',
-          zIndex: 1,
-        }} />
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
-          <Typography
-            variant="h2"
-            component="h1"
-            gutterBottom
-            sx={{
-              fontWeight: 700,
-              color: '#fff',
-              textShadow: '0 4px 24px rgba(0,0,0,0.55)',
-              background: 'rgba(255,255,255,0.08)',
-              borderRadius: 2,
-              px: { xs: 1, sm: 2 },
-              py: { xs: 1, sm: 1.5 },
-              display: 'inline-block',
-              fontSize: { xs: '1.5rem', sm: '2.125rem', md: '3.75rem' },
-              lineHeight: { xs: 1.2, sm: 1.3, md: 1.2 },
-              wordWrap: 'break-word',
-              maxWidth: '100%',
-            }}
-          >
-            Predict Cardiovascular Disease Risk
-          </Typography>
-          <Typography
-            variant="h5"
-            sx={{
-              mb: { xs: 3, sm: 4 },
-              opacity: 0.98,
-              color: '#fff',
-              textShadow: '0 2px 12px rgba(0,0,0,0.35)',
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: 1,
-              px: { xs: 1, sm: 2 },
-              py: { xs: 0.5, sm: 1 },
-              display: 'inline-block',
-              fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-              lineHeight: { xs: 1.3, sm: 1.4, md: 1.5 },
-              wordWrap: 'break-word',
-              maxWidth: '100%',
-            }}
-          >
-            Advanced AI-powered risk assessment using LASSO feature selection and Gradient Boosting
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/predict')}
-            sx={{
-              bgcolor: 'white',
-              color: 'primary.main',
-              px: { xs: 3, sm: 4 },
-              py: { xs: 1, sm: 1.5 },
-              fontSize: { xs: '1rem', sm: '1.2rem' },
-              '&:hover': {
-                bgcolor: 'grey.100',
-              },
-            }}
-          >
-            Start Prediction
-          </Button>
-        </Container>
+        <Typography variant="h2" align="center" className="glow-text" sx={{ fontWeight: 'bold', color: '#fff', mb: 3 }}>
+          Predict Cardiovascular Disease Risk
+        </Typography>
+        <Typography variant="h5" align="center" className="glow-text" sx={{ mt: 2, color: '#fff' }}>
+          Advanced AI-powered risk assessment using LASSO feature selection and Gradient Boosting
+        </Typography>
+        <Button
+          variant="contained"
+          color="error"
+          size="large"
+          sx={{ mt: 5, px: 5, py: 1.5, fontWeight: 600, fontSize: '1.2rem', borderRadius: 3 }}
+          onClick={() => navigate('/predict')}
+        >
+          Start Prediction
+        </Button>
       </Box>
 
       {/* About CVD Section */}

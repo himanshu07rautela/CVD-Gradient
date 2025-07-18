@@ -13,6 +13,7 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import PredictionPage from './pages/PredictionPage';
 import ResearchPage from './pages/ResearchPage';
 import TeamPage from './pages/TeamPage';
+import SignupPage from './pages/SignupPage';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
                   <Route path="/patient-dashboard" element={<PatientDashboard />} />
                   <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
                   <Route path="/predict" element={<PredictionPage />} />

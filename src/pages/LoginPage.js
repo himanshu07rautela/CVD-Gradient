@@ -15,6 +15,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Person, LocalHospital } from '@mui/icons-material';
+import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -38,32 +40,39 @@ const LoginPage = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    // Simple validation
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
       return;
     }
-
-    // Mock login - in real app, this would be an API call
-    const role = tabValue === 0 ? 'patient' : 'doctor';
-    const userData = {
-      id: '1',
-      name: formData.email.split('@')[0],
-      email: formData.email,
-      role: role,
-    };
-
-    login(userData);
-    
-    // Redirect to appropriate dashboard
-    if (role === 'doctor') {
-      navigate('/doctor-dashboard');
-    } else {
-      navigate('/patient-dashboard');
+    try {
+      const response = await axios.post('http://localhost:8000/login', {
+        email: formData.email,
+        password: formData.password,
+      });
+      const userData = {
+        id: response.data.userId,
+        name: response.data.name,
+        email: response.data.email,
+        role: response.data.role,
+        doctorId: response.data.doctorId, // in case of doctor
+      };
+      // Enforce role-based login
+      const selectedRole = tabValue === 0 ? 'patient' : 'doctor';
+      if (userData.role !== selectedRole) {
+        setError(`This account is not registered as a ${selectedRole}. Please use the correct login option.`);
+        return;
+      }
+      login(userData);
+      if (userData.role === 'doctor') {
+        navigate('/doctor-dashboard');
+      } else {
+        navigate('/patient-dashboard');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -143,6 +152,12 @@ const LoginPage = () => {
           >
             Sign In
           </Button>
+        </Box>
+
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Typography variant="body2">
+            Don't have an account? <Link to="/signup">Sign up</Link>
+          </Typography>
         </Box>
 
         {/* Demo Login Cards */}

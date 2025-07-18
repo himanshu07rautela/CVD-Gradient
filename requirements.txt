@@ -1,9 +1,12 @@
 pandas
 numpy
-scikit-learn
+scikit-learn==1.5.1
 joblib
 fastapi
-uvicorn 
+uvicorn
 motor
 python-dotenv
-scikit-learn==1.5.1
+passlib[bcrypt]
+PyJWT
+email-validator
+

@@ -32,7 +32,7 @@ const TeamPage = () => {
       name: 'Manas Rajpal',
       role: 'Student, IIIT Kota',
       avatar: 'MR',
-      bio: 'Played a key role in writing the research paper and contributed to data engineering and backend development.',
+      bio: 'Contributed to writing the research paper.',
       education: 'B.Tech, IIIT Kota',
       linkedin: 'https://www.linkedin.com/in/manas-rajpal-81b197256/',
     },

@@ -14,41 +14,55 @@ import {
   TableRow,
   Paper,
   Alert,
+  TextField,
+  Button,
 } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import { useNavigate } from 'react-router-dom';
 
 const PatientDashboard = () => {
   const { user } = useAuth();
-  const [predictionHistory, setPredictionHistory] = useState([]);
+  const navigate = useNavigate();
+  const [reports, setReports] = useState({ graphData: [], tableData: [] });
   const [loading, setLoading] = useState(true);
+  const [linkDoctorId, setLinkDoctorId] = useState('');
+  const [linkDoctorMsg, setLinkDoctorMsg] = useState('');
 
   useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    axios.get(`https://cvd-gradient.onrender.com/predictions?user_id=${user.id}`)
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    // Use email as unique user id
+    axios.get(`http://localhost:8000/predictions?user_id=${user.email}`)
       .then(res => {
-        // Map MongoDB data to dashboard format and sort by timestamp (oldest first)
-        const history = res.data
-          .map(item => ({
-            date: new Date(item.timestamp).toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric',
-              year: 'numeric'
-            }),
-            riskScore: parseFloat((item.risk_score * 100).toFixed(1)),
-            timestamp: new Date(item.timestamp), // Keep original timestamp for sorting
-            // Add more fields if needed
-          }))
-          .sort((a, b) => a.timestamp - b.timestamp); // Sort by timestamp ascending (oldest first)
-        
-        setPredictionHistory(history);
+        // Map MongoDB data to dashboard format
+        let mappedReports = res.data.map(item => ({
+          date: new Date(item.timestamp).getTime(), // Use numeric timestamp for X-axis
+          dateLabel: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), // For tooltip/labels
+          riskScore: item.risk_score ? parseFloat((item.risk_score * 100).toFixed(1)) : 0,
+          riskLevel: item.risk_score > 0.7 ? 'High' : item.risk_score > 0.4 ? 'Medium' : 'Low',
+          status: item.risk_score > 0.7 ? 'Critical' : 'Normal',
+          timestamp: new Date(item.timestamp),
+          ...item
+        }));
+        // Sort for graph: oldest to newest (ascending)
+        const graphData = [...mappedReports].sort((a, b) => a.date - b.date);
+        // Sort for table: newest to oldest (descending)
+        const tableData = [...mappedReports].sort((a, b) => b.date - a.date);
+        setReports({ graphData, tableData });
+        setLoading(false);
       })
-      .catch(() => setPredictionHistory([]))
-      .finally(() => setLoading(false));
-  }, [user]);
+      .catch(err => {
+        setReports({ graphData: [], tableData: [] });
+        setLoading(false);
+      });
+  }, [user, navigate]);
+
+  if (!user) return null; // Prevent rendering if not authenticated
 
   if (loading) {
     return (
@@ -72,7 +86,7 @@ const PatientDashboard = () => {
         Welcome back, {user?.name}! Here's your cardiovascular health overview.
       </Typography>
 
-      {predictionHistory.length === 0 ? (
+      {reports.graphData.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <Typography variant="h5" gutterBottom color="primary">
@@ -97,13 +111,19 @@ const PatientDashboard = () => {
                 </Typography>
                 <Box sx={{ height: 400 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={predictionHistory}>
+                    <LineChart data={reports.graphData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        type="number"
+                        domain={['dataMin', 'dataMax']}
+                        scale="time"
+                      />
                       <YAxis />
-                      <Tooltip 
-                        formatter={(value, name) => [`${value}%`, 'Risk Score']}
-                        labelFormatter={(label) => `Date: ${label}`}
+                      <Tooltip
+                        labelFormatter={date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        formatter={(value) => [`${value}%`, 'Risk Score']}
                       />
                       <Line
                         type="monotone"
@@ -131,7 +151,7 @@ const PatientDashboard = () => {
                     Total Tests
                   </Typography>
                   <Typography variant="h3" color="primary">
-                    {predictionHistory.length}
+                    {reports.graphData.length}
                   </Typography>
                 </Box>
                 <Box sx={{ mt: 3 }}>
@@ -139,11 +159,46 @@ const PatientDashboard = () => {
                     Average Risk
                   </Typography>
                   <Typography variant="h3" color="primary">
-                    {predictionHistory.length > 0 
-                      ? (predictionHistory.reduce((sum, item) => sum + item.riskScore, 0) / predictionHistory.length).toFixed(1)
+                    {reports.graphData.length > 0 
+                      ? (reports.graphData.reduce((sum, item) => sum + item.riskScore, 0) / reports.graphData.length).toFixed(1)
                       : '0'
                     }%
                   </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Link Doctor Section */}
+          <Grid item xs={12}>
+            <Card sx={{ boxShadow: 3, borderRadius: 3, mb: 4 }}>
+              <CardContent>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Link a Doctor
+                </Typography>
+                <Box component="form" onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLinkDoctorMsg('');
+                  try {
+                    await axios.post('http://localhost:8000/link-doctor', {
+                      patient_email: user.email,
+                      doctor_id: linkDoctorId,
+                    });
+                    setLinkDoctorMsg('Doctor linked successfully!');
+                    setLinkDoctorId('');
+                  } catch (err) {
+                    setLinkDoctorMsg(err.response?.data?.detail || 'Failed to link doctor.');
+                  }
+                }} sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+                  <TextField
+                    label="Enter Doctor ID"
+                    value={linkDoctorId}
+                    onChange={e => setLinkDoctorId(e.target.value)}
+                    size="small"
+                    sx={{ maxWidth: 200 }}
+                  />
+                  <Button type="submit" variant="contained" size="small">Link</Button>
+                  {linkDoctorMsg && <Typography variant="body2" color={linkDoctorMsg.includes('success') ? 'success.main' : 'error.main'} sx={{ ml: 2 }}>{linkDoctorMsg}</Typography>}
                 </Box>
               </CardContent>
             </Card>
@@ -167,9 +222,9 @@ const PatientDashboard = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {predictionHistory.map((test, index) => (
+                      {reports.tableData.map((test, index) => (
                         <TableRow key={index}>
-                          <TableCell>{test.date}</TableCell>
+                          <TableCell>{test.dateLabel}</TableCell>
                           <TableCell>{test.riskScore}%</TableCell>
                           <TableCell>
                             {test.riskScore > 70 ? 'High' : test.riskScore > 40 ? 'Medium' : 'Low'}
