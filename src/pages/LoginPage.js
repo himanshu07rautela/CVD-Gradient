@@ -52,7 +52,7 @@ const LoginPage = () => {
         email: formData.email,
         password: formData.password,
       });
-      const userData = {
+    const userData = {
         id: response.data.userId,
         name: response.data.name,
         email: response.data.email,
@@ -65,11 +65,11 @@ const LoginPage = () => {
         setError(`This account is not registered as a ${selectedRole}. Please use the correct login option.`);
         return;
       }
-      login(userData);
+    login(userData);
       if (userData.role === 'doctor') {
-        navigate('/doctor-dashboard');
-      } else {
-        navigate('/patient-dashboard');
+      navigate('/doctor-dashboard');
+    } else {
+      navigate('/patient-dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');

@@ -3,10 +3,11 @@ numpy
 scikit-learn==1.5.1
 joblib
 fastapi
-uvicorn
+uvicorn 
 motor
 python-dotenv
-passlib[bcrypt]
 PyJWT
 email-validator
+passlib==1.7.4
+bcrypt==4.0.1
 

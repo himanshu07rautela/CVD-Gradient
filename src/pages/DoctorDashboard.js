@@ -78,12 +78,12 @@ const DoctorDashboard = () => {
       </Typography>
       {/* Multi-patient trend chart */}
       <Card sx={{ mb: 4 }}>
-        <CardContent>
+              <CardContent>
           <Typography variant="h6" color="primary" gutterBottom>
             Risk Percent Trend (All Patients)
-          </Typography>
+                </Typography>
           <Box sx={{ height: 350 }}>
-            <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 20, right: 40, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                 <XAxis dataKey="date" stroke="#888" fontSize={13} />
@@ -120,30 +120,30 @@ const DoctorDashboard = () => {
                   </>
                 ))}
               </LineChart>
-            </ResponsiveContainer>
-          </Box>
-        </CardContent>
-      </Card>
-      {/* Patient Table */}
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          {/* Patient Table */}
       <Grid container spacing={4}>
-        <Grid item xs={12}>
-          <Card sx={{ boxShadow: 3, borderRadius: 3, transition: 'box-shadow 0.3s', '&:hover': { boxShadow: 8 } }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom color="primary">
-                All Patients
-              </Typography>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Patient Name</TableCell>
-                      <TableCell>Last Test</TableCell>
-                      <TableCell>Risk Score</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+          <Grid item xs={12}>
+            <Card sx={{ boxShadow: 3, borderRadius: 3, transition: 'box-shadow 0.3s', '&:hover': { boxShadow: 8 } }}>
+              <CardContent>
+                <Typography variant="h5" gutterBottom color="primary">
+                  All Patients
+                </Typography>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Patient Name</TableCell>
+                        <TableCell>Last Test</TableCell>
+                        <TableCell>Risk Score</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
                     {patientData.map((patient, idx) => (
                       <React.Fragment key={patient.id}>
                         <TableRow>
@@ -217,14 +217,14 @@ const DoctorDashboard = () => {
                           </TableCell>
                         </TableRow>
                       </React.Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
     </Container>
   );
 };

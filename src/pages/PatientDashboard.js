@@ -121,7 +121,7 @@ const PatientDashboard = () => {
                         scale="time"
                       />
                       <YAxis />
-                      <Tooltip
+                      <Tooltip 
                         labelFormatter={date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         formatter={(value) => [`${value}%`, 'Risk Score']}
                       />
