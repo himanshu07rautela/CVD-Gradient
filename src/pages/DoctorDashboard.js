@@ -18,7 +18,7 @@ const DoctorDashboard = () => {
   useEffect(() => {
     setLoading(true);
     const doctorId = user?.role === 'doctor' ? user.doctorId : undefined;
-    const url = doctorId ? `http://localhost:8000/patients/summary?doctor_id=${doctorId}` : 'http://localhost:8000/patients/summary';
+    const url = doctorId ? `https://cvd-gradient.onrender.com/patients/summary?doctor_id=${doctorId}` : 'https://cvd-gradient.onrender.com/patients/summary';
     axios.get(url)
       .then(res => {
         setPatientData(res.data.patients || []);
