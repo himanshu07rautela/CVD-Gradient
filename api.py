@@ -284,7 +284,11 @@ async def get_patients_summary(doctor_id: Optional[str] = Query(None)):
         if not doctor:
             raise HTTPException(status_code=404, detail="Doctor not found.")
         patient_ids = doctor.get('patients', [])
-        patients_cursor = db['patients'].find({"userId": {"$in": patient_ids}})
+        # Only fetch patients who are in the doctor's patients array AND have the doctorId in their linkedDoctors
+        patients_cursor = db['patients'].find({
+            "userId": {"$in": patient_ids},
+            "linkedDoctors": doctor_id
+        })
     else:
         patients_cursor = db['patients'].find({})
     patients = []
