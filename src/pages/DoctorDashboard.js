@@ -25,8 +25,15 @@ const DoctorDashboard = () => {
 
   useEffect(() => {
     setLoading(true);
+    // Always use doctorId for fetching patients
     const doctorId = user?.role === 'doctor' ? user.doctorId : undefined;
-    const url = doctorId ? `https://cvd-gradient.onrender.com/patients/summary?doctor_id=${doctorId}` : 'https://cvd-gradient.onrender.com/patients/summary';
+    if (!doctorId) {
+      setPatientData([]);
+      setStats({});
+      setLoading(false);
+      return;
+    }
+    const url = `https://cvd-gradient.onrender.com/patients/summary?doctor_id=${doctorId}`;
     axios.get(url)
       .then(res => {
         setPatientData(res.data.patients || []);
