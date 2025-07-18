@@ -50,7 +50,7 @@ const SignupPage = () => {
     }
     try {
       // Only send doctorId if role is doctor (handled by backend), so just send formData as is for patients
-      const response = await axios.post('http://localhost:8000/signup', formData);
+      const response = await axios.post('https://cvd-gradient.onrender.com/signup', formData);
       if (formData.role === 'doctor' && response.data.doctorId) {
         setSuccess(`Signup successful! Your Doctor ID is: ${response.data.doctorId} (share this with your patients)`);
       } else {

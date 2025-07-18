@@ -43,7 +43,7 @@ const PatientDashboard = () => {
       return;
     }
     // Use email as unique user id
-    axios.get(`http://localhost:8000/predictions?user_id=${user.email}`)
+    axios.get(`https://cvd-gradient.onrender.com/predictions?user_id=${user.email}`)
       .then(res => {
         // Map MongoDB data to dashboard format
         let mappedReports = res.data.map(item => ({
@@ -186,7 +186,7 @@ const PatientDashboard = () => {
                   e.preventDefault();
                   setLinkDoctorMsg('');
                   try {
-                    await axios.post('http://localhost:8000/link-doctor', {
+                    await axios.post('https://cvd-gradient.onrender.com/link-doctor', {
                       patient_email: user.email,
                       doctor_id: linkDoctorId,
                     });

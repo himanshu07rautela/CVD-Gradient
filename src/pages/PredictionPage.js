@@ -76,7 +76,7 @@ const PredictionPage = () => {
       // Make API call to backend
       const userInfo = user ? JSON.stringify({ id: user.email, name: user.name, email: user.email }) : null;
       const response = await axios.post(
-        'http://localhost:8000/predict',
+        'https://cvd-gradient.onrender.com/predict',
         processedData,
         userInfo ? { headers: { 'x-user-info': userInfo } } : undefined
       );
